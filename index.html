@@ -328,6 +328,17 @@ input.search{width:100%;border:2px solid var(--border-strong);border-radius:11px
   font-family:var(--font-body);margin-bottom:12px;background:var(--card);color:var(--ink)}
 input.search:focus{outline:0;border-color:var(--ink)}
 
+/* ============ ACCOUNT ============ */
+.overlay{position:fixed;inset:0;background:rgba(10,14,25,.55);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:70px 16px 20px}
+.overlay.show{display:flex}
+.authbox{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);max-width:430px;width:100%;padding:24px;animation:viewin .25s}
+.authbox input{width:100%;border:2px solid var(--border-strong);border-radius:11px;padding:11px 13px;font-size:1rem;font-family:var(--font-body);margin:6px 0;background:var(--card);color:var(--ink)}
+.authbox input:focus{outline:0;border-color:var(--ink)}
+.autherr{color:var(--bad);font-weight:600;font-size:.88rem;margin-top:6px;min-height:1.2em}
+.synctag{font-size:.78rem;color:var(--ink-faint)}
+.iconbtn.logged{background:var(--ok)}
+.loginhint{display:flex;align-items:center;gap:9px;background:var(--card2);border:1.8px dashed var(--border-strong);border-radius:12px;padding:11px 14px;margin-bottom:14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.loginhint:hover{border-color:var(--ink)}
 @media(max-width:600px){
   .brand .wordmark small{display:none}
   .brand .wordmark{font-size:1rem}
@@ -355,6 +366,7 @@ input.search:focus{outline:0;border-color:var(--ink)}
       <div class="pill" id="minPill" title="Minuti di studio oggi (conteggio automatico)"></div>
       <div class="pill flame" id="streakBox" title="Giorni di fila"></div>
       <button class="iconbtn" id="themeBtn" onclick="toggleTheme()" title="Tema chiaro/scuro"></button>
+      <button class="iconbtn" id="accBtn" onclick="openAuth()" title="Profilo"></button>
     </div>
   </div>
   <nav class="nav" id="mainNav"></nav>
@@ -389,6 +401,7 @@ input.search:focus{outline:0;border-color:var(--ink)}
   <div class="view" id="view-stats"></div>
   <div class="view" id="view-help"></div>
 </div>
+<div class="overlay" id="authOverlay" onclick="if(event.target===this)closeAuth()"><div class="authbox" id="authBox"></div></div>
 <div id="toasts"></div>
 <script>
 /* ================= PERCORSO ================= */
@@ -1824,7 +1837,8 @@ words:'<path d="M4 7V5h16v2M9 5v14M6 19h6M14 12h7M17.5 12v7M15 19h5"/>',
 refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/>',
 ear:'<path d="M6 9a6 6 0 1 1 12 0c0 3-2 3.5-3 5.5-.8 1.6-.5 3.5-2.5 4.5S8.5 18.6 8.5 17"/>',
 download:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
-lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
+lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'
 };
 function ic(n,cls){return "<svg class='ic"+(cls?" "+cls:"")+"' viewBox='0 0 24 24' aria-hidden='true'>"+IC[n]+"</svg>"}
 
@@ -1833,7 +1847,7 @@ let memStore={};
 const storage={
   ok:(function(){try{localStorage.setItem("__t","1");localStorage.removeItem("__t");return true}catch(e){return false}})(),
   get(k,def){try{if(this.ok){const v=localStorage.getItem(k);return v?JSON.parse(v):def}return memStore[k]!==undefined?memStore[k]:def}catch(e){return def}},
-  set(k,v){try{if(this.ok){localStorage.setItem(k,JSON.stringify(v))}else{memStore[k]=v}}catch(e){}}
+  set(k,v){try{if(this.ok){localStorage.setItem(k,JSON.stringify(v))}else{memStore[k]=v}}catch(e){}if(k.indexOf("el_")===0&&k!=="el_auth"&&k!=="el_lastsync"&&!window.__syncMuted){try{scheduleSync()}catch(e){}}}
 };
 if(!storage.ok){document.getElementById("storageBanner").style.display="block"}
 
@@ -2047,6 +2061,7 @@ function renderToday(){
   h+="<button class='btn btn-ghost' onclick='startReview()'>"+ic("cards")+" Flashcard ("+due+")</button>";
   if(Object.keys(errors).length)h+="<button class='btn btn-ghost' onclick='openErrors()'>"+ic("alert")+" Errori ("+Object.keys(errors).length+")</button>";
   h+="</div>";
+  if(apiUrl()&&!auth){h+="<div class='loginhint' onclick='openAuth()'>"+ic("user")+"<span>Crea il tuo profilo (o accedi): salvi i progressi online e li ritrovi ovunque</span></div>"}
   h+="<div class='stats four'>";
   h+="<div class='stat'><b>"+progress.done.length+"</b><span>Lezioni</span></div>";
   h+="<div class='stat'><b>"+due+"</b><span>Da ripassare</span></div>";
@@ -2695,6 +2710,125 @@ function importData(){
     toast("Progressi importati!","check",true);nav("view-today");
   }catch(e){toast("Backup non valido: controlla di aver incollato tutto il testo.","alert")}
 }
+
+/* ================= PROFILI E SINCRONIZZAZIONE ================= */
+var REMOTE_API=""; // se l'app gira su un host senza PHP (GitHub Pages), mettere qui l'URL completo dell'api.php
+function apiUrl(){
+  if(REMOTE_API)return REMOTE_API;
+  if(location.protocol==="file:"||location.hostname.indexOf("github.io")>-1)return null;
+  return "api.php";
+}
+let auth=storage.get("el_auth",null);
+let syncTimer=null,lastSyncAt=storage.get("el_lastsync",0);
+function collectState(){return {p:progress,s:srs,e:errors,t:stats,cfg:settings,v:4}}
+function applyState(d){
+  if(!d||!d.p)return;
+  window.__syncMuted=true;
+  try{
+    progress=d.p;srs=d.s||{};errors=d.e||{};stats=d.t||{};
+    if(d.cfg)settings=Object.assign(settings,d.cfg);
+    progress.readDone=progress.readDone||[];progress.wordPtr=progress.wordPtr||0;
+    progress.tests=progress.tests||{};progress.badges=progress.badges||[];
+    for(const k in srs){const c=srs[k];if(c.ease===undefined){const OLD=[0,1,2,4,8,16,32,64];c.ease=2.5;c.ivl=OLD[Math.min(c.box||0,7)]||0;c.reps=c.box||0;c.lapses=0}}
+    saveProgress();saveSrs();saveErrors();saveStats();saveSettings();
+    document.documentElement.dataset.theme=settings.theme;
+  }finally{window.__syncMuted=false}
+  refreshHeader();
+  const act=document.querySelector(".view.active");
+  if(act&&act.id==="view-today")renderToday();
+}
+async function api(action,payload){
+  const url=apiUrl();
+  if(!url)throw new Error("Su questo host i profili non sono attivi");
+  const headers={"Content-Type":"application/json"};
+  if(auth&&auth.token)headers["Authorization"]="Bearer "+auth.token;
+  const r=await fetch(url,{method:"POST",headers:headers,body:JSON.stringify(Object.assign({action:action},payload||{}))});
+  const j=await r.json().catch(function(){return{}});
+  if(!r.ok){
+    if(r.status===401&&action!=="login"&&action!=="register"){auth=null;storage.set("el_auth",null);refreshAcc()}
+    throw new Error(j.error||"Errore di rete: riprova");
+  }
+  return j;
+}
+function scheduleSync(){if(!auth)return;clearTimeout(syncTimer);syncTimer=setTimeout(pushState,4000)}
+async function pushState(){
+  if(!auth)return;
+  try{
+    const r=await api("save",{data:collectState()});
+    lastSyncAt=r.updated_at*1000;storage.set("el_lastsync",lastSyncAt);
+    const el=document.getElementById("syncTag");if(el)el.textContent=syncLabel();
+  }catch(e){}
+}
+async function pullState(){
+  if(!auth)return;
+  try{
+    const r=await api("load");
+    if(r.data){applyState(r.data);lastSyncAt=r.updated_at*1000;storage.set("el_lastsync",lastSyncAt)}
+    else pushState();
+  }catch(e){}
+}
+function syncLabel(){
+  if(!lastSyncAt)return "in attesa della prima sincronizzazione...";
+  const d=new Date(lastSyncAt);
+  return "sincronizzato alle "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function openAuth(){document.getElementById("authOverlay").classList.add("show");updAuthBox()}
+function closeAuth(){document.getElementById("authOverlay").classList.remove("show")}
+function updAuthBox(){
+  const box=document.getElementById("authBox");
+  let h="";
+  if(!apiUrl()){
+    h="<h2>Profilo</h2><p class='muted'>Su questa copia dell'app (senza server) i progressi restano solo su questo dispositivo. Usa la versione online per avere il profilo con email e password.</p><br><button class='btn btn-ghost btn-small' onclick='closeAuth()'>Chiudi</button>";
+  }else if(auth){
+    h="<h2>"+ic("user")+" "+esc(auth.email)+"</h2>";
+    h+="<p class='synctag' id='syncTag'>"+syncLabel()+"</p>";
+    h+="<p class='muted' style='margin-top:10px'>I tuoi progressi si salvano da soli nel tuo profilo: apri l'app da qualsiasi dispositivo, fai il login e ritrovi tutto.</p>";
+    h+="<div style='display:flex;gap:8px;margin-top:14px;flex-wrap:wrap'>";
+    h+="<button class='btn btn-primary btn-small' onclick='pushState().then(updAuthBox)'>"+ic("refresh")+" Sincronizza ora</button>";
+    h+="<button class='btn btn-ghost btn-small' onclick='doLogout()'>Esci dal profilo</button></div>";
+  }else{
+    h="<h2>Il tuo profilo</h2><p class='muted'>Crea un profilo gratuito: i progressi si salvano online e li ritrovi su qualsiasi dispositivo. Ognuno ha il suo.</p>";
+    h+="<input type='email' id='authEmail' placeholder='Email' autocomplete='email'>";
+    h+="<input type='password' id='authPass' placeholder='Password (min 6 caratteri)' autocomplete='current-password' onkeydown='if(event.key===&quot;Enter&quot;)doAuth(&quot;login&quot;)'>";
+    h+="<div class='autherr' id='authErr'></div>";
+    h+="<div style='display:flex;gap:8px;margin-top:6px;flex-wrap:wrap'>";
+    h+="<button class='btn btn-primary btn-small' onclick='doAuth(&quot;login&quot;)'>Accedi</button>";
+    h+="<button class='btn btn-line btn-small' onclick='doAuth(&quot;register&quot;)'>Crea profilo</button>";
+    h+="<button class='btn btn-ghost btn-small' onclick='closeAuth()'>Chiudi</button></div>";
+    h+="<p class='tiny' style='margin-top:12px'>I progressi già fatti su questo dispositivo verranno agganciati al nuovo profilo.</p>";
+  }
+  box.innerHTML=h;
+}
+async function doAuth(mode){
+  const email=(document.getElementById("authEmail").value||"").trim();
+  const pass=document.getElementById("authPass").value||"";
+  const err=document.getElementById("authErr");err.textContent="";
+  if(!email||!pass){err.textContent="Compila email e password";return}
+  try{
+    const r=await api(mode,{email:email,password:pass});
+    auth={token:r.token,email:r.email};storage.set("el_auth",auth);
+    if(r.data){applyState(r.data);lastSyncAt=r.updated_at*1000;storage.set("el_lastsync",lastSyncAt)}
+    else await pushState();
+    refreshAcc();closeAuth();
+    toast("Profilo attivo: "+r.email,"user",true);
+    nav("view-today");
+  }catch(e){err.textContent=e.message}
+}
+async function doLogout(){
+  try{await api("logout")}catch(e){}
+  auth=null;storage.set("el_auth",null);
+  refreshAcc();updAuthBox();
+  toast("Sei uscito: i progressi restano su questo dispositivo","user");
+}
+function refreshAcc(){
+  const b=document.getElementById("accBtn");if(!b)return;
+  b.innerHTML=ic("user");
+  b.classList.toggle("logged",!!auth);
+  b.title=auth?("Profilo: "+auth.email):"Accedi o crea un profilo";
+}
+refreshAcc();
+if(auth)pullState();
+setInterval(function(){if(auth)pushState()},180000);
 
 document.querySelector(".tab[data-v='view-today']").classList.add("active");
 refreshHeader();
