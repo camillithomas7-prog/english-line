@@ -2723,7 +2723,7 @@ function importData(){
 }
 
 /* ================= PROFILI E SINCRONIZZAZIONE ================= */
-var REMOTE_API=""; // se l'app gira su un host senza PHP (GitHub Pages), mettere qui l'URL completo dell'api.php
+var REMOTE_API="https://magenta-goose-135049.hostingersite.com/api.php"; // backend profili (Hostinger)
 function apiUrl(){
   if(REMOTE_API)return REMOTE_API;
   if(location.protocol==="file:"||location.hostname.indexOf("github.io")>-1)return null;

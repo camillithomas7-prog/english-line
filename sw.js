@@ -1,5 +1,5 @@
 /* English Line — service worker: app usabile offline, aggiornamenti network-first */
-const CACHE = "el-v4-1";
+const CACHE = "el-v4-2";
 const CORE = ["./", "./index.html", "./icon-192.png", "./icon-512.png", "./manifest.json"];
 
 self.addEventListener("install", e => {
