@@ -336,6 +336,22 @@ input.search{width:100%;border:2px solid var(--border-strong);border-radius:11px
   font-family:var(--font-body);margin-bottom:12px;background:var(--card);color:var(--ink)}
 input.search:focus{outline:0;border-color:var(--ink)}
 
+/* ============ GATE (login obbligatorio) ============ */
+#gate{position:fixed;inset:0;z-index:200;background:var(--paper);display:none;overflow-y:auto}
+#gate.show{display:block}
+.gate-head{background:var(--headbar);color:var(--headink);padding:calc(34px + env(safe-area-inset-top)) 20px 30px;text-align:center}
+.gate-head .roundel{width:56px;height:56px;margin:0 auto 14px;display:block}
+.gate-head .roundel::after{background:var(--headbar)}
+.gate-head h1{font-family:var(--font-display);font-size:1.7rem;letter-spacing:.12em;text-transform:uppercase}
+.gate-head p{color:#98A0BC;font-size:.9rem;margin-top:4px}
+.gate-body{max-width:420px;margin:-16px auto 0;padding:0 18px 40px}
+.gate-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:24px}
+.gate-card input{width:100%;border:2px solid var(--border-strong);border-radius:11px;padding:12px 14px;font-size:1rem;font-family:var(--font-body);margin:7px 0;background:var(--card);color:var(--ink)}
+.gate-card input:focus{outline:0;border-color:var(--ink)}
+.gate-card .btn{width:100%;margin-top:8px}
+.gate-note{text-align:center;font-size:.8rem;color:var(--ink-faint);margin-top:16px;line-height:1.6}
+.gate-switch{text-align:center;margin-top:14px;font-size:.9rem}
+.gate-switch a{color:var(--line3);font-weight:700;cursor:pointer;text-decoration:underline}
 /* ============ ACCOUNT ============ */
 .overlay{position:fixed;inset:0;background:rgba(10,14,25,.55);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:70px 16px 20px}
 .overlay.show{display:flex}
@@ -409,6 +425,13 @@ input.search:focus{outline:0;border-color:var(--ink)}
   <div class="view" id="view-stats"></div>
   <div class="view" id="view-help"></div>
 </div>
+<div id="gate"><div class="gate-head">
+  <span class="roundel" aria-hidden="true"></span>
+  <h1>English Line</h1>
+  <p>Da zero a esperto, una fermata al giorno</p>
+</div><div class="gate-body"><div class="gate-card" id="gateCard"></div>
+<p class="gate-note">45 lezioni A1 → C2 · flashcard intelligenti · audio · letture graduate<br>Gratis. I tuoi progressi si salvano nel tuo profilo.</p>
+</div></div>
 <div class="overlay" id="authOverlay" onclick="if(event.target===this)closeAuth()"><div class="authbox" id="authBox"></div></div>
 <div id="toasts"></div>
 <script>
@@ -2756,7 +2779,7 @@ async function api(action,payload){
   const r=await fetch(url,{method:"POST",headers:headers,body:JSON.stringify(Object.assign({action:action},payload||{}))});
   const j=await r.json().catch(function(){return{}});
   if(!r.ok){
-    if(r.status===401&&action!=="login"&&action!=="register"){auth=null;storage.set("el_auth",null);refreshAcc()}
+    if(r.status===401&&action!=="login"&&action!=="register"){auth=null;storage.set("el_auth",null);refreshAcc();if(apiUrl())showGate()}
     throw new Error(j.error||"Errore di rete: riprova");
   }
   return j;
@@ -2828,8 +2851,9 @@ async function doAuth(mode){
 async function doLogout(){
   try{await api("logout")}catch(e){}
   auth=null;storage.set("el_auth",null);
-  refreshAcc();updAuthBox();
-  toast("Sei uscito: i progressi restano su questo dispositivo","user");
+  refreshAcc();closeAuth();
+  toast("Sei uscito dal profilo","user");
+  if(apiUrl())showGate();
 }
 function refreshAcc(){
   const b=document.getElementById("accBtn");if(!b)return;
@@ -2837,8 +2861,39 @@ function refreshAcc(){
   b.classList.toggle("logged",!!auth);
   b.title=auth?("Profilo: "+auth.email):"Accedi o crea un profilo";
 }
+var gateMode="register";
+function showGate(){document.getElementById("gate").classList.add("show");renderGate()}
+function hideGate(){document.getElementById("gate").classList.remove("show")}
+function setGateMode(m){gateMode=m;renderGate()}
+function renderGate(){
+  const c=document.getElementById("gateCard");
+  const reg=gateMode==="register";
+  let h="<h2 style='margin-bottom:4px'>"+(reg?"Crea il tuo profilo":"Bentornato!")+"</h2>";
+  h+="<p class='muted' style='margin-bottom:8px'>"+(reg?"Per iniziare il corso serve un profilo: così i tuoi progressi non si perdono mai.":"Accedi col tuo profilo per ritrovare i tuoi progressi.")+"</p>";
+  h+="<input type='email' id='gateEmail' placeholder='La tua email' autocomplete='email'>";
+  h+="<input type='password' id='gatePass' placeholder='Password"+(reg?" (min 6 caratteri)":"")+"' autocomplete='"+(reg?"new-password":"current-password")+"' onkeydown='if(event.key===\"Enter\")gateGo()'>";
+  h+="<div class='autherr' id='gateErr'></div>";
+  h+="<button class='btn btn-line' onclick='gateGo()'>"+(reg?"Crea profilo e inizia":"Accedi")+"</button>";
+  h+="<div class='gate-switch'>"+(reg?"Hai già un profilo? <a onclick='setGateMode(\"login\")'>Accedi</a>":"Prima volta qui? <a onclick='setGateMode(\"register\")'>Crea il profilo</a>")+"</div>";
+  c.innerHTML=h;
+}
+async function gateGo(){
+  const email=(document.getElementById("gateEmail").value||"").trim();
+  const pass=document.getElementById("gatePass").value||"";
+  const err=document.getElementById("gateErr");err.textContent="";
+  if(!email||!pass){err.textContent="Compila email e password";return}
+  try{
+    const r=await api(gateMode==="register"?"register":"login",{email:email,password:pass});
+    auth={token:r.token,email:r.email};storage.set("el_auth",auth);
+    if(r.data){applyState(r.data);lastSyncAt=r.updated_at*1000;storage.set("el_lastsync",lastSyncAt)}
+    else await pushState();
+    refreshAcc();hideGate();
+    toast("Benvenuto a bordo, "+r.email.split("@")[0]+"!","train",true);
+    nav("view-today");
+  }catch(e){err.textContent=e.message}
+}
 refreshAcc();
-if(auth)pullState();
+if(auth){pullState()}else if(apiUrl()){showGate()}
 setInterval(function(){if(auth)pushState()},180000);
 
 document.querySelector(".tab[data-v='view-today']").classList.add("active");
