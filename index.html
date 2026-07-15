@@ -364,17 +364,51 @@ input.search:focus{outline:0;border-color:var(--ink)}
 .loginhint{display:flex;align-items:center;gap:9px;background:var(--card2);border:1.8px dashed var(--border-strong);border-radius:12px;padding:11px 14px;margin-bottom:14px;cursor:pointer;font-weight:600;font-size:.9rem}
 .loginhint:hover{border-color:var(--ink)}
 @media(max-width:600px){
+  /* header compatto: niente sovrapposizioni */
+  .hrow{gap:8px}
+  .brand{flex:1;min-width:0;gap:8px}
   .brand .wordmark small{display:none}
-  .brand .wordmark{font-size:1rem}
-  .hstats .pill span.txt{display:none}
+  .brand .wordmark{font-size:.92rem;letter-spacing:.09em;overflow:hidden;text-overflow:ellipsis}
+  .roundel{width:26px;height:26px}
+  .roundel::before{border-width:4px}
+  .roundel::after{left:-3px;right:-3px;height:7px;border-top-width:2px;border-bottom-width:2px}
+  .hstats{gap:5px;flex:none}
+  .pill{padding:4px 8px;font-size:.76rem;gap:4px}
+  .pill span.txt{display:none}
+  .iconbtn{width:30px;height:30px}
+  .iconbtn .ic{width:.95em;height:.95em}
+  .nav{gap:2px}
+  .tab{font-size:.62rem;letter-spacing:.02em;padding:6px 1px 5px}
+  .tab .ic{width:1.2em;height:1.2em}
+  /* contenuti */
   td.pron{display:block;width:auto;padding-top:0}
   table.vocab td{display:block;width:auto;border-bottom:0;padding:2px 6px}
   table.vocab td.spk{display:inline-block;float:right}
   table.vocab tr{display:block;border-bottom:1px solid var(--border);padding:8px 0}
   .stat b{font-size:1.2rem}
+  .stat span{font-size:.6rem}
+  .stats{gap:7px}
   .stats.four{grid-template-columns:repeat(2,1fr)}
   .fc-btns{grid-template-columns:repeat(2,1fr)}
   h1{font-size:1.5rem}
+  .card{padding:16px}
+  .wrap{padding:0 14px}
+  .board{padding:13px 13px 11px}
+  .brow{gap:9px}
+  .brow .btxt{font-size:.84rem}
+  .brow .bstate{font-size:.66rem}
+  .bigrow{grid-template-columns:1fr}
+  .lesson-top{flex-direction:column-reverse;align-items:flex-start}
+  .lesson-top .btn{align-self:flex-end;margin-bottom:-6px}
+  .hero{gap:10px}
+  .fface .big{font-size:1.55rem}
+  .exercise{padding:13px}
+  .btn{padding:11px 15px;font-size:.94rem}
+  .gate-head h1{font-size:1.4rem}
+}
+@media(max-width:380px){
+  .pill#minPill{display:none}
+  .brand .wordmark{font-size:.85rem;letter-spacing:.06em}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
