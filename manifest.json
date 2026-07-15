@@ -1,0 +1,16 @@
+{
+  "name": "English Line — Da zero a esperto",
+  "short_name": "English Line",
+  "description": "Corso completo di inglese A1-C2: 45 lezioni, flashcard a ripetizione spaziata, audio, letture graduate.",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#151B30",
+  "theme_color": "#151B30",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

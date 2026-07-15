@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>English Line — Da zero a esperto</title>
+<meta name="theme-color" content="#151B30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="English Line">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
 try{var _s=JSON.parse(localStorage.getItem("el_settings")||"{}");
 document.documentElement.dataset.theme=_s.theme||(matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
@@ -50,7 +58,7 @@ document.documentElement.dataset.theme=_s.theme||(matchMedia&&matchMedia("(prefe
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{background:var(--paper);color:var(--ink);
   font-family:var(--font-body);font-size:16px;line-height:1.55;
-  padding-bottom:70px;transition:background .3s,color .3s}
+  padding-bottom:calc(70px + env(safe-area-inset-bottom));transition:background .3s,color .3s}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
   background-image:radial-gradient(color-mix(in srgb,var(--ink) 4%,transparent) 1px,transparent 1px);
   background-size:22px 22px}
@@ -58,7 +66,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 svg.ic{width:1.05em;height:1.05em;vertical-align:-.16em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
 /* ============ HEADER ============ */
-header{background:var(--headbar);color:var(--headink);padding:12px 0 10px;position:sticky;top:0;z-index:50;
+header{background:var(--headbar);color:var(--headink);padding:calc(12px + env(safe-area-inset-top)) 0 10px;position:sticky;top:0;z-index:50;
   box-shadow:0 2px 14px rgba(0,0,0,.28)}
 .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
@@ -2674,6 +2682,9 @@ function renderHelp(){
   h+="<h3>Il percorso: da zero (A1) a super esperto (C2)</h3>";
   h+="<p>Il corso è una linea della metropolitana: ogni fermata una lezione, ogni linea un modulo. Tutto è già qui dentro: 9 moduli, 45 lezioni. I livelli seguono la scala europea: <b>A1–A2</b> (base), <b>B1–B2</b> (autonomo), <b>C1–C2</b> (padronanza). E copre tutti gli obiettivi:</p>";
   h+="<div class='ex'><b>Parlare</b> → dialoghi ad alta voce, prova di pronuncia, traduzioni<br><b>Capire</b> → audio ovunque, dettati, letture con ascolto<br><b>Leggere un libro</b> → scheda Lettura: testi graduati sempre più lunghi<br><b>Più parole possibili</b> → Banca delle parole + lezioni, tutte nel motore di ripetizione spaziata</div>";
+  h+="<h3>Installala sul telefono come una vera app</h3>";
+  h+="<p><b>iPhone:</b> apri il sito in Safari → tasto Condividi → <b>Aggiungi alla schermata Home</b>.<br><b>Android:</b> apri il sito in Chrome → menu ⋮ → <b>Aggiungi a schermata Home</b> (o \"Installa app\").</p>";
+  h+="<p>Avrai l'icona di English Line sulla home, l'app a schermo intero senza barra del browser, e funziona anche offline.</p>";
   h+="<h3>Il tempo si conta da solo</h3>";
   h+="<p>Niente timer da accendere: mentre usi l'app i minuti si accumulano automaticamente (se ti fermi più di un minuto, il conteggio si mette in pausa da solo). L'anello nella scheda Oggi mostra quanto manca al tuo obiettivo giornaliero.</p>";
   h+="<h3>La tua ora perfetta</h3>";
@@ -2831,6 +2842,7 @@ if(auth)pullState();
 setInterval(function(){if(auth)pushState()},180000);
 
 document.querySelector(".tab[data-v='view-today']").classList.add("active");
+if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(function(){})}
 refreshHeader();
 renderToday();
 checkBadges();
